@@ -1,38 +1,93 @@
 <!DOCTYPE html>
-<html>
+<html lang="pl">
 <head>
-    <title>Tylna Kamera w Negatywie</title>
+    <title>Tylna Kamera w Negatywie z Popupem</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
-            background-color: #222;
-            color: #eee;
+            background-color: #222; /* Ciemne tło */
+            color: #eee; /* Jasny tekst */
             font-family: sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            overflow: hidden; /* Zapobiega przewijaniu, gdy popup jest otwarty */
         }
 
         .camera-container {
-            border: 5px solid #555;
+            border: 5px solid #555; /* Ciemniejsza ramka */
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Cień dla głębi */
             width: 360px; /* Dostosowanie do pionowej orientacji */
             max-width: 90%;
             aspect-ratio: 9 / 16; /* Ustawienie proporcji pionowej */
+            position: relative; /* Potrzebne dla pozycjonowania elementów wewnątrz */
+            z-index: 1; /* Upewnij się, że kamera jest pod popupem */
         }
 
         #camera-stream {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            -webkit-filter: invert(100%);
-            filter: invert(100%);
+            -webkit-filter: invert(100%); /* Filtr negatywu */
+            filter: invert(100%); /* Filtr negatywu */
+            display: block; /* Usuwa dodatkowe miejsce pod video */
         }
+
+        /* Styl dla overlay popupa */
+        .popup-overlay {
+            position: fixed; /* Pozycja względem okna przeglądarki */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8); /* Półprzezroczyste czarne tło */
+            display: none; /* Domyślnie ukryty */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Upewnij się, że jest na wierzchu */
+        }
+
+        /* Styl dla okna popupa */
+        .popup-box {
+            background-color: #333; /* Ciemne tło popupa */
+            color: #eee; /* Jasny tekst w popupie */
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7); /* Mocniejszy cień */
+            max-width: 80%;
+            width: 400px; /* Można dostosować szerokość */
+            position: relative; /* Dla pozycjonowania przycisku zamknięcia */
+            text-align: left; /* Wyrównanie tekstu do lewej */
+        }
+
+        /* Styl dla przycisku zamknięcia */
+        .popup-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #aaa; /* Kolor przycisku zamknięcia */
+            cursor: pointer;
+            transition: color 0.3s ease; /* Płynne przejście koloru */
+        }
+
+        .popup-close:hover {
+            color: #fff; /* Jaśniejszy kolor po najechaniu */
+        }
+
+        /* Styl dla treści popupa */
+        #popup-content {
+            margin-top: 10px; /* Odstęp od góry */
+            max-height: 60vh; /* Maksymalna wysokość, aby uniknąć zbyt dużego popupa */
+            overflow-y: auto; /* Dodaje pasek przewijania, jeśli treść jest za długa */
+        }
+
     </style>
 </head>
 <body>
@@ -40,18 +95,107 @@
         <video id="camera-stream" autoplay playsinline></video>
     </div>
 
+    <div id="popup-overlay" class="popup-overlay">
+        <div class="popup-box">
+            <span id="popup-close" class="popup-close">&times;</span> <h2>Informacja</h2> <div id="popup-content">
+                Ładowanie treści...
+            </div>
+        </div>
+    </div>
+
     <script>
+        const video = document.getElementById('camera-stream');
+        const popupOverlay = document.getElementById('popup-overlay');
+        const popupContent = document.getElementById('popup-content');
+        const popupClose = document.getElementById('popup-close');
+
+        // Funkcja do pokazywania popupa i ładowania treści
+        async function showPopup() {
+            try {
+                // Pobierz treść z pliku popup.txt
+                // WAŻNE: To zadziała tylko, jeśli plik jest serwowany przez serwer WWW.
+                // Nie zadziała przy otwieraniu pliku HTML bezpośrednio z dysku (file:///)
+                // z powodu ograniczeń bezpieczeństwa przeglądarki (CORS).
+                const response = await fetch('popup.txt');
+
+                if (!response.ok) {
+                    // Jeśli plik nie został znaleziony lub wystąpił inny błąd HTTP
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const text = await response.text(); // Odczytaj treść jako tekst
+                popupContent.textContent = text; // Wstaw tekst do popupa
+
+            } catch (error) {
+                // Obsługa błędów (np. plik nie istnieje, problem z siecią)
+                console.error('Błąd ładowania treści popupa:', error);
+                popupContent.textContent = 'Nie udało się załadować treści. Sprawdź konsolę, aby uzyskać więcej informacji.';
+            } finally {
+                // Niezależnie od wyniku, pokaż popup
+                popupOverlay.style.display = 'flex'; // Pokaż overlay popupa
+            }
+        }
+
+        // Funkcja do ukrywania popupa
+        function hidePopup() {
+            popupOverlay.style.display = 'none'; // Ukryj overlay popupa
+        }
+
+        // Dodaj nasłuchiwanie na kliknięcie przycisku zamknięcia
+        popupClose.addEventListener('click', hidePopup);
+
+        // Dodaj nasłuchiwanie na kliknięcie poza oknem popupa (na overlay)
+        popupOverlay.addEventListener('click', function(event) {
+            // Jeśli kliknięty element to overlay (a nie jego dziecko - popup-box)
+            if (event.target === popupOverlay) {
+                hidePopup();
+            }
+        });
+
+        // Poproś o dostęp do tylnej kamery
         navigator.mediaDevices.getUserMedia({
             video: { facingMode: { exact: "environment" } } // Użycie tylnej kamery
         })
-            .then(function(stream) {
-                const video = document.getElementById('camera-stream');
-                video.srcObject = stream;
-            })
-            .catch(function(error) {
-                console.error('Błąd dostępu do kamery:', error);
-                alert('Nie można uzyskać dostępu do kamery.');
-            });
+        .then(function(stream) {
+            // Jeśli udało się uzyskać dostęp do kamery
+            video.srcObject = stream; // Ustaw strumień wideo jako źródło dla elementu <video>
+
+            // Pokaż popup po pomyślnym uruchomieniu kamery
+            showPopup();
+        })
+        .catch(function(error) {
+            // Jeśli wystąpił błąd przy dostępie do kamery
+            console.error('Błąd dostępu do kamery:', error);
+            // Można by użyć popupa do wyświetlenia błędu zamiast alertu
+            popupContent.innerHTML = `<strong>Błąd dostępu do kamery:</strong><br>${error.message}<br><br>Upewnij się, że udzielono pozwolenia na dostęp do kamery.`;
+            popupOverlay.style.display = 'flex'; // Pokaż popup z informacją o błędzie
+            // alert('Nie można uzyskać dostępu do kamery.'); // Oryginalny alert
+        });
     </script>
 </body>
 </html>
+```
+
+**Plik `popup.txt`:**
+
+Utwórz plik o nazwie `popup.txt` w tym samym folderze co plik HTML i umieść w nim tekst, który ma być wyświetlony w popupie. Na przykład:
+
+```txt
+Witaj! To jest przykładowa treść informacyjna ładowana z zewnętrznego pliku.
+
+Możesz tutaj umieścić dowolne instrukcje, ostrzeżenia lub inne komunikaty dla użytkownika. Pamiętaj o ograniczeniach związanych z ładowaniem lokalnych plików.
+```
+
+**Zmiany:**
+
+1.  **HTML:** Dodano strukturę dla popupa (`popup-overlay`, `popup-box`, `popup-close`, `popup-content`).
+2.  **CSS:** Dodano style dla `popup-overlay`, `popup-box` i `popup-close`, aby stworzyć ciemny, pasujący do reszty strony wygląd. Popup jest domyślnie ukryty (`display: none`).
+3.  **JavaScript:**
+    * Dodano funkcję `showPopup`, która używa `fetch` do asynchronicznego pobrania treści z `popup.txt`.
+    * Treść jest wstawiana do elementu `popup-content`.
+    * Obsłużono potencjalne błędy podczas pobierania pliku.
+    * Popup jest wyświetlany (`popupOverlay.style.display = 'flex'`) po pomyślnym uzyskaniu dostępu do kamery (w bloku `.then`).
+    * Dodano funkcję `hidePopup` i event listener do przycisku zamknięcia (`popup-close`) oraz do kliknięcia na tło (`popup-overlay`), aby zamknąć popup.
+    * Zmodyfikowano obsługę błędu kamery, aby również wyświetlać informację w popupie zamiast używać `alert`.
+
+Teraz po uruchomieniu strony (przez serwer WWW) i udzieleniu dostępu do kamery, powinien pojawić się ciemny popup z treścią pobraną z pliku `popup.tx
