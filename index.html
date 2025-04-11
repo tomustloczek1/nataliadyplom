@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tylna Kamera w Negatywie</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background-color: #222;
+            color: #eee;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .camera-container {
+            border: 5px solid #555;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            width: 360px; /* Dostosowanie do pionowej orientacji */
+            max-width: 90%;
+            aspect-ratio: 9 / 16; /* Ustawienie proporcji pionowej */
+        }
+
+        #camera-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            -webkit-filter: invert(100%);
+            filter: invert(100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="camera-container">
+        <video id="camera-stream" autoplay playsinline></video>
+    </div>
+
+    <script>
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: "environment" } } // Użycie tylnej kamery
+        })
+            .then(function(stream) {
+                const video = document.getElementById('camera-stream');
+                video.srcObject = stream;
+            })
+            .catch(function(error) {
+                console.error('Błąd dostępu do kamery:', error);
+                alert('Nie można uzyskać dostępu do kamery.');
+            });
+    </script>
+</body>
+</html>
