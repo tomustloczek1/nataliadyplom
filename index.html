@@ -81,11 +81,19 @@
             color: #fff; /* Jaśniejszy kolor po najechaniu */
         }
 
+        /* Styl dla nagłówka popupa */
+        #popup-title {
+            margin-top: 0; /* Usunięcie domyślnego marginesu */
+            margin-bottom: 15px; /* Odstęp pod tytułem */
+            color: #fff; /* Biały kolor dla lepszej widoczności */
+        }
+
         /* Styl dla treści popupa */
         #popup-content {
-            margin-top: 10px; /* Odstęp od góry */
+            margin-top: 10px; /* Odstęp od góry (lub od tytułu) */
             max-height: 60vh; /* Maksymalna wysokość, aby uniknąć zbyt dużego popupa */
             overflow-y: auto; /* Dodaje pasek przewijania, jeśli treść jest za długa */
+            white-space: pre-wrap; /* Zachowuje białe znaki i zawijanie wierszy z pliku txt */
         }
 
     </style>
@@ -97,7 +105,7 @@
 
     <div id="popup-overlay" class="popup-overlay">
         <div class="popup-box">
-            <span id="popup-close" class="popup-close">&times;</span> <h2>Informacja</h2> <div id="popup-content">
+            <span id="popup-close" class="popup-close">&times;</span> <h2 id="popup-title">Ładowanie...</h2> <div id="popup-content">
                 Ładowanie treści...
             </div>
         </div>
@@ -106,6 +114,7 @@
     <script>
         const video = document.getElementById('camera-stream');
         const popupOverlay = document.getElementById('popup-overlay');
+        const popupTitle = document.getElementById('popup-title'); // Pobranie elementu tytułu
         const popupContent = document.getElementById('popup-content');
         const popupClose = document.getElementById('popup-close');
 
@@ -114,21 +123,29 @@
             try {
                 // Pobierz treść z pliku popup.txt
                 // WAŻNE: To zadziała tylko, jeśli plik jest serwowany przez serwer WWW.
-                // Nie zadziała przy otwieraniu pliku HTML bezpośrednio z dysku (file:///)
-                // z powodu ograniczeń bezpieczeństwa przeglądarki (CORS).
                 const response = await fetch('popup.txt');
 
                 if (!response.ok) {
-                    // Jeśli plik nie został znaleziony lub wystąpił inny błąd HTTP
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const text = await response.text(); // Odczytaj treść jako tekst
-                popupContent.textContent = text; // Wstaw tekst do popupa
+                const lines = text.trim().split(/\r?\n/); // Podziel tekst na linie (uwzględniając różne końce linii)
+
+                if (lines.length > 0 && lines[0].trim() !== '') {
+                    // Jeśli są linie i pierwsza nie jest pusta
+                    popupTitle.textContent = lines[0].trim(); // Ustaw pierwszą linię jako tytuł
+                    popupContent.textContent = lines.slice(1).join('\n'); // Ustaw resztę linii jako treść
+                } else {
+                    // Jeśli plik jest pusty lub pierwsza linia jest pusta
+                    popupTitle.textContent = "Informacja"; // Ustaw domyślny tytuł
+                    popupContent.textContent = ""; // Wyczyść treść
+                }
 
             } catch (error) {
                 // Obsługa błędów (np. plik nie istnieje, problem z siecią)
                 console.error('Błąd ładowania treści popupa:', error);
+                popupTitle.textContent = "Błąd"; // Ustaw tytuł błędu
                 popupContent.textContent = 'Nie udało się załadować treści. Sprawdź konsolę, aby uzyskać więcej informacji.';
             } finally {
                 // Niezależnie od wyniku, pokaż popup
@@ -146,7 +163,6 @@
 
         // Dodaj nasłuchiwanie na kliknięcie poza oknem popupa (na overlay)
         popupOverlay.addEventListener('click', function(event) {
-            // Jeśli kliknięty element to overlay (a nie jego dziecko - popup-box)
             if (event.target === popupOverlay) {
                 hidePopup();
             }
@@ -154,22 +170,20 @@
 
         // Poproś o dostęp do tylnej kamery
         navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: "environment" } } // Użycie tylnej kamery
+            video: { facingMode: { exact: "environment" } }
         })
         .then(function(stream) {
-            // Jeśli udało się uzyskać dostęp do kamery
-            video.srcObject = stream; // Ustaw strumień wideo jako źródło dla elementu <video>
-
+            video.srcObject = stream;
             // Pokaż popup po pomyślnym uruchomieniu kamery
-            showPopup();
+            // Opóźnienie może pomóc, jeśli strumień potrzebuje chwili na "ustabilizowanie się"
+            // setTimeout(showPopup, 500); // Opcjonalne małe opóźnienie
+             showPopup(); // Pokaż od razu
         })
         .catch(function(error) {
-            // Jeśli wystąpił błąd przy dostępie do kamery
             console.error('Błąd dostępu do kamery:', error);
-            // Można by użyć popupa do wyświetlenia błędu zamiast alertu
-            popupContent.innerHTML = `<strong>Błąd dostępu do kamery:</strong><br>${error.message}<br><br>Upewnij się, że udzielono pozwolenia na dostęp do kamery.`;
+            popupTitle.textContent = "Błąd Kamery"; // Ustaw tytuł błędu kamery
+            popupContent.innerHTML = `<strong>Nie można uzyskać dostępu do kamery:</strong><br>${error.message}<br><br>Upewnij się, że udzielono pozwolenia na dostęp do kamery w ustawieniach przeglądarki.`;
             popupOverlay.style.display = 'flex'; // Pokaż popup z informacją o błędzie
-            // alert('Nie można uzyskać dostępu do kamery.'); // Oryginalny alert
         });
     </script>
 </body>
