@@ -174,28 +174,3 @@
     </script>
 </body>
 </html>
-```
-
-**Plik `popup.txt`:**
-
-Utwórz plik o nazwie `popup.txt` w tym samym folderze co plik HTML i umieść w nim tekst, który ma być wyświetlony w popupie. Na przykład:
-
-```txt
-Witaj! To jest przykładowa treść informacyjna ładowana z zewnętrznego pliku.
-
-Możesz tutaj umieścić dowolne instrukcje, ostrzeżenia lub inne komunikaty dla użytkownika. Pamiętaj o ograniczeniach związanych z ładowaniem lokalnych plików.
-```
-
-**Zmiany:**
-
-1.  **HTML:** Dodano strukturę dla popupa (`popup-overlay`, `popup-box`, `popup-close`, `popup-content`).
-2.  **CSS:** Dodano style dla `popup-overlay`, `popup-box` i `popup-close`, aby stworzyć ciemny, pasujący do reszty strony wygląd. Popup jest domyślnie ukryty (`display: none`).
-3.  **JavaScript:**
-    * Dodano funkcję `showPopup`, która używa `fetch` do asynchronicznego pobrania treści z `popup.txt`.
-    * Treść jest wstawiana do elementu `popup-content`.
-    * Obsłużono potencjalne błędy podczas pobierania pliku.
-    * Popup jest wyświetlany (`popupOverlay.style.display = 'flex'`) po pomyślnym uzyskaniu dostępu do kamery (w bloku `.then`).
-    * Dodano funkcję `hidePopup` i event listener do przycisku zamknięcia (`popup-close`) oraz do kliknięcia na tło (`popup-overlay`), aby zamknąć popup.
-    * Zmodyfikowano obsługę błędu kamery, aby również wyświetlać informację w popupie zamiast używać `alert`.
-
-Teraz po uruchomieniu strony (przez serwer WWW) i udzieleniu dostępu do kamery, powinien pojawić się ciemny popup z treścią pobraną z pliku `popup.tx
